@@ -122,6 +122,7 @@ async def test_approve_creates_tasks_and_initializes_repository(
     git = Git(Path(stored.repo_path))
     assert await git.run("log", "--format=%s", "main") == "chore: project init (plan v1)"
     assert await git.rev_parse("dev") == await git.rev_parse("main")
+    assert await git.current_branch() == "dev"
     assert await git.is_clean()
     files = await git.run("ls-files")
     assert "docs/PLAN.md" in files and "docs/JOURNAL.md" in files and "AGENTS.md" in files

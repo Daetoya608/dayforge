@@ -168,6 +168,22 @@ class TestReplan:
 
         assert any("задача T1 уже выполнена" in e for e in errors_of(raw, self.context))
 
+    def test_milestone_with_done_tasks_may_have_no_new_tasks(self) -> None:
+        raw = self.replan()
+        for day in raw["days"]:
+            for planned in day["tasks"]:
+                planned["milestone"] = "M2"
+        context = PlanContext(
+            planned_days=4,
+            first_day=2,
+            done_keys=frozenset({"T1", "T2"}),
+            active_keys=frozenset({"T3"}),
+            done_milestones=frozenset({"M1"}),
+        )
+
+        assert check_plan(raw, context).warnings == []
+        assert any("у вехи M1 нет задач" in e for e in errors_of(raw, self.context))
+
     def test_active_task_cannot_be_removed(self) -> None:
         raw = self.replan()
         raw["days"][0]["tasks"] = [task("T6")]

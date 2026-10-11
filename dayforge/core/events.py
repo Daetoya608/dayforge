@@ -182,3 +182,15 @@ class ProjectCompleted(Event):
 class SystemRestarted(Event):
     # [(проект, ключ задачи)]
     interrupted: list[tuple[ProjectRef, str]]
+
+
+@dataclass(frozen=True, kw_only=True)
+class PlanningFailed(Event):
+    project: ProjectRef
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class DaysShortage(Event):
+    project: ProjectRef
+    missing_days: int

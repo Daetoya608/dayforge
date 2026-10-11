@@ -86,3 +86,17 @@ def test_urls_and_git_env() -> None:
     header = env["GIT_CONFIG_VALUE_0"].removeprefix("AUTHORIZATION: basic ")
     assert base64.b64decode(header).decode() == "x-access-token:secret-token"
     assert env["GIT_CONFIG_KEY_0"] == "http.https://github.com/.extraheader"
+
+
+async def test_delete_repo_ignores_missing() -> None:
+    paths: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        paths.append(f"{request.method} {request.url.path}")
+        return httpx.Response(404 if "gone" in request.url.path else 204)
+
+    github = provider(handler)
+    await github.delete_repo(RepoInfo(owner="daetoya", name="todo-bot"))
+    await github.delete_repo(RepoInfo(owner="daetoya", name="gone"))
+
+    assert paths == ["DELETE /repos/daetoya/todo-bot", "DELETE /repos/daetoya/gone"]

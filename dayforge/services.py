@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from typing import Protocol
+from typing import Any, Protocol
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -42,6 +42,12 @@ class Orchestrator(Protocol):
     async def archive_project(self, project_id: int) -> str: ...
 
     async def delete_project(self, project_id: int, *, delete_remote: bool) -> str: ...
+
+    async def approve_plan(self, plan_id: int) -> Any: ...
+
+    async def reject_plan(self, plan_id: int) -> Any: ...
+
+    async def after_answer(self, outcome: Any) -> None: ...
 
 
 @dataclass

@@ -66,6 +66,11 @@ class GitHubProvider:
         _raise_for_status(response, f"релиз {tag} в {repo.owner}/{repo.name}")
         return str(response.json()["html_url"])
 
+    async def delete_repo(self, repo: RepoInfo) -> None:
+        response = await self._client.delete(f"/repos/{repo.owner}/{repo.name}")
+        if response.status_code != 404:
+            _raise_for_status(response, f"удаление репозитория {repo.owner}/{repo.name}")
+
     def repo_from_remote(self, remote_url: str) -> RepoInfo:
         prefix = "https://github.com/"
         if not remote_url.startswith(prefix):

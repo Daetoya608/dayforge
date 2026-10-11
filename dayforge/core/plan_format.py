@@ -62,6 +62,8 @@ class PlanContext:
     done_keys: frozenset[str] = frozenset()
     # Задачи в работе (running, verifying, paused): удалять из плана нельзя.
     active_keys: frozenset[str] = frozenset()
+    # Вехи с выполненными задачами или уже выпущенные: в новом плане им задачи не нужны.
+    done_milestones: frozenset[str] = frozenset()
 
     @property
     def is_replan(self) -> bool:
@@ -91,7 +93,7 @@ def check_plan(raw: dict[str, Any], context: PlanContext) -> CheckedPlan:
         *_check_days(plan, context),
         *_check_keys(plan, context),
         *_check_dependencies(plan, context),
-        *_check_milestones(plan),
+        *_check_milestones(plan, context),
     ]
     if context.is_replan and not plan.change_summary:
         errors.append("change_summary: обязателен при перепланировании")
@@ -168,7 +170,7 @@ def _check_dependencies(plan: PlanContent, context: PlanContext) -> list[str]:
     return errors
 
 
-def _check_milestones(plan: PlanContent) -> list[str]:
+def _check_milestones(plan: PlanContent, context: PlanContext) -> list[str]:
     defined = [m.key for m in plan.milestones]
     used: set[str] = set()
     errors = []
@@ -178,7 +180,7 @@ def _check_milestones(plan: PlanContent) -> list[str]:
         used.add(task.milestone)
 
     for index, key in enumerate(defined):
-        if key not in used:
+        if key not in used and key not in context.done_milestones:
             errors.append(f"milestones[{index}]: у вехи {key} нет задач")
 
     last_path, last_task = plan.iter_tasks()[-1]

@@ -24,7 +24,7 @@
 
 1. Генерация `docs/PLAN.md`, пустой `docs/JOURNAL.md`.
 2. Первый коммит в `main`: `chore: project init (plan v1)`.
-3. `git branch dev`.
+3. `git checkout -b dev` — рабочая копия всегда на `dev` (или на ветке задачи); в `main` напрямую ничего не коммитится, только релизы.
 4. `VcsProvider.create_repo(slug, private=True)` → `remote add origin` → `push main dev`.
 
 ## Коммиты

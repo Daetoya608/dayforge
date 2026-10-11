@@ -80,6 +80,12 @@ class PlanService:
                         for t in tasks
                         if t.origin is TaskOrigin.PLAN and t.status in ACTIVE_TASK_STATUSES
                     ),
+                    done_milestones=frozenset(
+                        t.milestone_key
+                        for t in tasks
+                        if t.status is TaskStatus.DONE and t.milestone_key
+                    )
+                    | await _released_milestones(session, project_id),
                 ),
             )
 
@@ -229,7 +235,8 @@ class PlanService:
         git = Git(path)
         message = f"chore: project init (plan v{plan.version})"
         sha = await git.commit_all(message)
-        await git.create_branch("dev")
+        # Рабочая копия живёт на dev: main меняется только релизами.
+        await git.checkout_new("dev", "main")
         session.add(
             Commit(
                 sha=sha,
@@ -309,6 +316,15 @@ async def _sync_milestones(session: AsyncSession, project_id: int, content: Plan
     for milestone in existing.values():
         if milestone.status is MilestoneStatus.PENDING:
             await session.delete(milestone)
+
+
+async def _released_milestones(session: AsyncSession, project_id: int) -> frozenset[str]:
+    keys = await session.scalars(
+        select(Milestone.key).where(
+            Milestone.project_id == project_id, Milestone.status == MilestoneStatus.RELEASED
+        )
+    )
+    return frozenset(keys)
 
 
 async def _project(session: AsyncSession, project_id: int) -> Project:

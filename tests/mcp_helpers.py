@@ -44,6 +44,15 @@ class FakeOrchestrator:
         self.calls.append(("delete_project", (project_id, delete_remote)))
         return "deleted"
 
+    async def approve_plan(self, plan_id: int) -> Any:
+        self.calls.append(("approve_plan", plan_id))
+
+    async def reject_plan(self, plan_id: int) -> Any:
+        self.calls.append(("reject_plan", plan_id))
+
+    async def after_answer(self, outcome: Any) -> None:
+        self.calls.append(("after_answer", outcome))
+
 
 def free_port() -> int:
     with socket.socket() as sock:

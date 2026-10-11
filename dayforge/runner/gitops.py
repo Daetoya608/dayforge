@@ -34,9 +34,13 @@ async def ensure_on_dev(git: Git) -> None:
     """Перед работой с проектом: всё закоммичено, выбрана dev."""
     if await git.merge_in_progress():
         await git.run("merge", "--abort")
+    branch = await git.current_branch()
+    if branch == "main":
+        # В main напрямую не коммитим: изменения переезжают в dev вместе с переключением.
+        await git.checkout("dev")
+        branch = "dev"
     if not await git.is_clean():
-        branch = await git.current_branch() or "detached"
-        await git.commit_all(f"wip: незакоммиченные изменения в {branch}")
+        await git.commit_all(f"wip: незакоммиченные изменения в {branch or 'detached HEAD'}")
     if await git.current_branch() != "dev":
         await git.checkout("dev")
 
