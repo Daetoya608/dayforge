@@ -52,6 +52,8 @@ class Git:
 
     async def init(self, *, branch: str = "main") -> None:
         await self.run("init", "-q", "-b", branch)
+        # Рабочую копию пишут система и агент — разные пользователи одной группы.
+        await self.run("config", "core.sharedRepository", "group")
         # Фиксированный автор отличает коммиты агента и системы от ручных.
         await self.run("config", "user.name", AGENT_NAME)
         await self.run("config", "user.email", AGENT_EMAIL)

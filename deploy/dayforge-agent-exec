@@ -4,6 +4,8 @@
 # umask 002 — чтобы система могла работать с файлами через общую группу.
 set -eu
 umask 002
+# sudo сбрасывает PATH до secure_path, а Claude Code ставится в ~/.local/bin пользователя.
+export PATH="$HOME/.local/bin:$PATH"
 case "${1:-}" in
     claude | codex)
         exec "$@"

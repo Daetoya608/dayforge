@@ -24,7 +24,7 @@
   dayforge ALL=(dayforge-agent) NOPASSWD: /usr/local/bin/dayforge-agent-exec
   ```
 
-- Для `dayforge` в git: `safe.directory = /srv/dayforge/projects/*`.
+- Git: у `dayforge` и `dayforge-agent` глобально `safe.directory = *` — рабочие копии принадлежат разным пользователям одной группы; репозитории проектов создаются с `core.sharedRepository = group`.
 
 ## Установка
 
@@ -57,6 +57,20 @@ sudo -u dayforge uv run alembic upgrade head
 sudo cp deploy/dayforge.service /etc/systemd/system/
 sudo systemctl enable --now dayforge
 ```
+
+### Скриптами
+
+Всё, что описано выше, кроме `.env` и входа в CLI, делают скрипты из `deploy/`:
+
+```bash
+deploy/deploy.sh root@<адрес> [ветка]   # с машины разработчика
+```
+
+- `bootstrap.sh` (на сервере, идемпотентно) — пользователи и группа, каталоги, bare-репозиторий `/srv/dayforge/dayforge.git`, `safe.directory` для git, `uv`, Claude Code для `dayforge-agent`, копия входа в Claude Code и Codex из `/root` (если агент ещё не залогинен), своп 2 ГБ, если его нет.
+- `git push` ветки в bare-репозиторий по SSH.
+- `update.sh` (на сервере) — код из ветки в `/srv/dayforge/app`, обёртка агента, sudoers, systemd-юнит, `uv sync`, миграции, перезапуск службы.
+
+Повторный запуск `deploy.sh` — это и есть синхронизация изменений.
 
 ## Конфигурация
 
