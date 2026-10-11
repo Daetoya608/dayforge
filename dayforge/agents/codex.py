@@ -25,6 +25,8 @@ class CodexAdapter:
     async def start(self, request: SessionRequest) -> CliProcess:
         # У codex exec нет отдельного системного промпта — роль идёт в начале сообщения.
         prompt = f"{request.system_prompt}\n\n---\n\n{request.prompt}"
+        # `codex exec resume` не принимает --cd и --sandbox (проверено на codex-cli 0.162):
+        # рабочая директория — cwd процесса, песочница — через -c sandbox_mode.
         options = [
             "--json",
             "--model",
@@ -33,21 +35,24 @@ class CodexAdapter:
             f'mcp_servers.dayforge.url="{request.mcp_url}"',
             "-c",
             f'mcp_servers.dayforge.bearer_token_env_var="{MCP_TOKEN_ENV}"',
-            "--cd",
-            str(request.cwd),
+            # Без этого в режиме только чтения Codex требует одобрять каждый вызов MCP, а в
+            # неинтерактивном exec одобрять некому — вызов отклоняется.
+            "-c",
+            'mcp_servers.dayforge.default_tools_approval_mode="approve"',
             "--skip-git-repo-check",
         ]
         if request.effort:
             options += ["-c", f'model_reasoning_effort="{request.effort}"']
         if request.read_only:
-            options += ["--sandbox", "read-only"]
+            options += ["-c", 'sandbox_mode="read-only"']
         else:
             options += ["--dangerously-bypass-approvals-and-sandbox"]
 
         command = [*launch_prefix(self._agent_unix_user), self._binary, "exec"]
         if request.resume_id:
-            command += ["resume", request.resume_id]
-        command += [*options, prompt]
+            command += ["resume", *options, request.resume_id, prompt]
+        else:
+            command += [*options, prompt]
 
         return await CliProcess.start(
             command,

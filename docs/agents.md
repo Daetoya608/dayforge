@@ -74,28 +74,29 @@ claude -p "<prompt>" \
   [--resume <cli_session_id>]
 ```
 
-- **MCP-конфиг** — временный файл с сервером типа `http`, URL роли и заголовком `Authorization: Bearer ${DAYFORGE_MCP_TOKEN}`: сам токен приходит только в переменной окружения процесса. Файл удаляется после сессии. *Уточнить при реализации*, что подстановка переменных работает и для `--mcp-config`.
+- **MCP-конфиг** — временный файл с сервером типа `http`, URL роли и заголовком `Authorization: Bearer ${DAYFORGE_MCP_TOKEN}`: сам токен приходит только в переменной окружения процесса (подстановка в `--mcp-config` проверена на Claude Code 2.1). Файл удаляется после сессии.
 - **`cli_session_id`** берётся из первого события `system/init`.
 - **Только чтение** (системный агент): вместо `bypassPermissions` — `--allowedTools` со списком `Read`, `Grep`, `Glob`, `Bash(git log:*)`, `Bash(git show:*)`, `Bash(git diff:*)`, `mcp__dayforge__*` и `--disallowedTools Edit Write`.
-- **Уровень reasoning** — через документированную переменную `MAX_THINKING_TOKENS` (бюджет размышлений): `low` — 4000, `medium` — 16000, `high` — 32000, `max` — 64000.
-- **Лимит подписки** распознаётся по событию результата с ошибкой лимита; время сброса — из текста ошибки. *Уточнить при реализации* формат.
+- **Уровень reasoning** — флаг `--effort` (`low`, `medium`, `high`, `xhigh`, `max`; проверено на Claude Code 2.1).
+- **Лимит подписки** — по событию `rate_limit_event` (`rate_limit_info.status` не `allowed`, время сброса — `resetsAt`) и, на всякий случай, по тексту ошибки в событии `result`.
 - Авторизация: один раз `claude` → `/login` под `dayforge-agent` на сервере (подписка).
 
 ## Codex
 
 ```bash
-codex exec [resume <cli_session_id>] --json \
+codex exec [resume] --json \
   --model <model> \
   -c 'mcp_servers.dayforge.url="http://127.0.0.1:8765/mcp/<role>"' \
   -c 'mcp_servers.dayforge.bearer_token_env_var="DAYFORGE_MCP_TOKEN"' \
-  --cd <рабочая директория> --skip-git-repo-check \
+  -c 'mcp_servers.dayforge.default_tools_approval_mode="approve"' \
+  --skip-git-repo-check \
   -c 'model_reasoning_effort="<effort>"' \
   --dangerously-bypass-approvals-and-sandbox \
-  "<prompt>"
+  [<cli_session_id>] "<prompt>"
 ```
 
 - Системный промпт роли передаётся в начале `prompt` (отделён `---`): отдельного флага у `codex exec` нет.
-- Только чтение: `--sandbox read-only` вместо обхода песочницы.
+- Только чтение: `-c sandbox_mode="read-only"` вместо обхода песочницы. `codex exec resume` не принимает `--cd` и `--sandbox` (codex-cli 0.162), поэтому рабочая директория задаётся cwd процесса, а песочница — через `-c`.
 - Если HTTP-транспорт MCP недоступен в установленной версии — запасной вариант: stdio-прокси `dayforge-mcp-proxy`, который пробрасывает stdio в HTTP-эндпоинт с токеном.
 - Авторизация: `codex login` (device code) под `dayforge-agent`.
 

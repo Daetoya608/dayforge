@@ -87,10 +87,8 @@ class TestClaudeCode:
         assert argv[argv.index("--resume") + 1] == "sess-0"
         assert argv[argv.index("--permission-mode") + 1] == "bypassPermissions"
         assert "--strict-mcp-config" in argv
-        assert called["env"] == {
-            "DAYFORGE_MCP_TOKEN": "token-123456",
-            "MAX_THINKING_TOKENS": "32000",
-        }
+        assert argv[argv.index("--effort") + 1] == "high"
+        assert called["env"]["DAYFORGE_MCP_TOKEN"] == "token-123456"
 
         # Токен — только в окружении; конфиг ссылается на переменную и удаляется после сессии.
         config_path = Path(argv[argv.index("--mcp-config") + 1])
@@ -134,6 +132,30 @@ class TestClaudeCode:
 
         assert result.error_kind == "limit"
         assert result.limit_resets_at == datetime(2026, 11, 2, 15, 0, tzinfo=UTC)
+
+    async def test_rate_limit_event_marks_limit_with_reset_time(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        reset = int(datetime(2026, 11, 2, 18, 0, tzinfo=UTC).timestamp())
+        fake_env(
+            monkeypatch,
+            tmp_path,
+            [
+                {"type": "system", "subtype": "init", "session_id": "s"},
+                {
+                    "type": "rate_limit_event",
+                    "rate_limit_info": {"status": "rejected", "resetsAt": reset},
+                },
+                {"type": "result", "is_error": True, "result": "Ошибка API", "session_id": "s"},
+            ],
+            FAKE_EXIT="1",
+        )
+        process = await ClaudeCodeAdapter(binary=FAKE).start(request(tmp_path))
+
+        result = await process.wait()
+
+        assert result.error_kind == "limit"
+        assert result.limit_resets_at == datetime(2026, 11, 2, 18, 0, tzinfo=UTC)
 
     async def test_crash_with_stderr(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         fake_env(monkeypatch, tmp_path, [], FAKE_EXIT="2", FAKE_STDERR="boom token-123456")
@@ -185,9 +207,12 @@ class TestCodex:
         assert kinds == ["init", "tool_call", "tool_result", "text", "usage"]
         assert (result.cli_session_id, result.final_text) == ("th-1", "Готово")
         argv = json.loads(record.read_text())["argv"]
-        assert argv[:3] == ["exec", "resume", "th-0"]
+        assert argv[:2] == ["exec", "resume"]
+        assert argv[-2] == "th-0"  # id сессии — после опций, перед промптом
+        assert "--cd" not in argv
         assert 'model_reasoning_effort="medium"' in argv
         assert 'mcp_servers.dayforge.bearer_token_env_var="DAYFORGE_MCP_TOKEN"' in argv
+        assert 'mcp_servers.dayforge.default_tools_approval_mode="approve"' in argv
         assert "--dangerously-bypass-approvals-and-sandbox" in argv
         assert argv[-1].startswith("Ты разработчик\n\n---\n\nСделай задачу T1")
 
@@ -205,7 +230,7 @@ class TestCodex:
         result = await process.wait()
 
         argv = json.loads(record.read_text())["argv"]
-        assert argv[argv.index("--sandbox") + 1] == "read-only"
+        assert 'sandbox_mode="read-only"' in argv
         assert result.error_kind == "limit"
 
 

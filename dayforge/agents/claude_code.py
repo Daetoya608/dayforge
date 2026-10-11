@@ -15,8 +15,8 @@ from dayforge.agents.base import AgentEvent, SessionRequest
 from dayforge.agents.process import CliProcess, ParseState, event, launch_prefix
 
 MCP_TOKEN_ENV = "DAYFORGE_MCP_TOKEN"
-# Бюджет размышлений по уровню reasoning — через документированную переменную MAX_THINKING_TOKENS.
-THINKING_TOKENS = {"low": "4000", "medium": "16000", "high": "32000", "max": "64000"}
+# Уровни reasoning, которые принимает `claude --effort` (проверено на Claude Code 2.1).
+EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
 READ_ONLY_TOOLS = [
     "Read",
     "Grep",
@@ -62,12 +62,12 @@ class ClaudeCodeAdapter:
             command += ["--disallowedTools", ",".join(WRITE_TOOLS)]
         else:
             command += ["--permission-mode", "bypassPermissions"]
+        if request.effort in EFFORT_LEVELS:
+            command += ["--effort", request.effort]  # type: ignore[list-item]
         if request.resume_id:
             command += ["--resume", request.resume_id]
 
         env = {**os.environ, MCP_TOKEN_ENV: request.mcp_token}
-        if request.effort in THINKING_TOKENS:
-            env["MAX_THINKING_TOKENS"] = THINKING_TOKENS[request.effort]
         return await CliProcess.start(
             command,
             cwd=request.cwd,
@@ -120,6 +120,15 @@ def parse_line(data: dict[str, Any], state: ParseState) -> list[AgentEvent]:
             if isinstance(block, dict) and block.get("type") == "tool_result"
         ]
 
+    if kind == "rate_limit_event":
+        # Состояние лимита подписки приходит отдельным событием (Claude Code 2.1).
+        info = data.get("rate_limit_info") or {}
+        if info.get("resetsAt"):
+            state.limit_resets_at = datetime.fromtimestamp(int(info["resetsAt"]), UTC)
+        if info.get("status") not in (None, "allowed", "allowed_warning"):
+            state.error_kind = "limit"
+        return [event("usage", rate_limit=info)]
+
     if kind == "result":
         state.cli_session_id = data.get("session_id") or state.cli_session_id
         state.usage = {
@@ -131,8 +140,9 @@ def parse_line(data: dict[str, Any], state: ParseState) -> list[AgentEvent]:
         if data.get("is_error"):
             state.error_text = text
             is_limit, resets_at = detect_limit(text)
-            state.error_kind = "limit" if is_limit else "crash"
-            state.limit_resets_at = resets_at
+            if state.error_kind != "limit":
+                state.error_kind = "limit" if is_limit else "crash"
+            state.limit_resets_at = resets_at or state.limit_resets_at
         else:
             state.final_text = text
         return [event("result", is_error=bool(data.get("is_error")), subtype=data.get("subtype"))]

@@ -20,7 +20,7 @@
 - `dayforge` запускает агентов через обёртку `/usr/local/bin/dayforge-agent-exec` (из `deploy/`): она выставляет umask `002` и запускает `claude`, `codex` или — в режиме `test` — команду тестов шлюза. Тесты выполняют код проекта, поэтому тоже идут от `dayforge-agent`, а не от пользователя системы. Правило sudoers разрешает только её и пробрасывает переменную с токеном MCP:
 
   ```
-  Defaults:dayforge env_keep += "DAYFORGE_MCP_TOKEN MAX_THINKING_TOKENS"
+  Defaults:dayforge env_keep += "DAYFORGE_MCP_TOKEN"
   dayforge ALL=(dayforge-agent) NOPASSWD: /usr/local/bin/dayforge-agent-exec
   ```
 
