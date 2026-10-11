@@ -33,7 +33,10 @@ class FakeSession(BaseSession):
         self._ids = itertools.count(100)
 
     async def make_request(
-        self, bot: Bot, method: TelegramMethod[Any], timeout: int | None = None  # noqa: ASYNC109
+        self,
+        bot: Bot,
+        method: TelegramMethod[Any],
+        timeout: int | None = None,  # noqa: ASYNC109
     ) -> Any:
         self.calls.append(method)
         now = datetime.now(UTC)
