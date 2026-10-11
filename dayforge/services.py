@@ -13,6 +13,7 @@ from dayforge.core.pending_actions import PendingActionService
 from dayforge.core.plans import PlanService
 from dayforge.core.projects import ProjectService
 from dayforge.core.questions import QuestionService
+from dayforge.core.releases import ReleaseService
 from dayforge.core.reports import ReportService
 from dayforge.core.repos import RepoSync
 from dayforge.core.runs import RunService
@@ -58,6 +59,7 @@ class Services:
     actions: PendingActionService
     sessions: SessionService
     repos: RepoSync
+    releases: ReleaseService
     # Подключается после сборки: оркестратору самому нужны сервисы.
     orchestrator: Orchestrator | None = None
 
@@ -92,4 +94,5 @@ def build_services(
         actions=PendingActionService(session_factory, notifier, ttl=pending_action_ttl),
         sessions=SessionService(session_factory, sessions_log_dir),
         repos=RepoSync(session_factory, vcs_provider),
+        releases=ReleaseService(session_factory),
     )

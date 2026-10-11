@@ -138,6 +138,15 @@ class SessionService:
                 )
             )
 
+    async def latest_for_task(self, task_id: int) -> AgentSession | None:
+        async with self._session_factory() as session:
+            return await session.scalar(
+                select(AgentSession)
+                .where(AgentSession.task_id == task_id)
+                .order_by(AgentSession.id.desc())
+                .limit(1)
+            )
+
     async def running(self) -> list[AgentSession]:
         async with self._session_factory() as session:
             return list(

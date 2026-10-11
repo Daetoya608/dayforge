@@ -169,6 +169,15 @@ class QuestionService:
         async with self._session_factory() as session:
             return await _get(session, Question, question_id)
 
+    async def latest_answered(self, task_id: int) -> Question | None:
+        async with self._session_factory() as session:
+            return await session.scalar(
+                select(Question)
+                .where(Question.task_id == task_id, Question.status == QuestionStatus.ANSWERED)
+                .order_by(Question.id.desc())
+                .limit(1)
+            )
+
     async def open_questions(self, project_id: int | None = None) -> list[Question]:
         query = select(Question).where(Question.status == QuestionStatus.OPEN).order_by(Question.id)
         if project_id is not None:

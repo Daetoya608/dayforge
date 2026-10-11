@@ -1,13 +1,19 @@
 #!/bin/sh
-# Запуск CLI агента от dayforge-agent (docs/operations.md#пользователи).
-# Разрешены только claude и codex; umask 002 — чтобы система могла работать с файлами через группу.
+# Запуск от dayforge-agent (docs/operations.md#пользователи): CLI агентов и тесты проектов —
+# код проекта недоверенный, поэтому и тесты шлюза идут не от пользователя системы.
+# umask 002 — чтобы система могла работать с файлами через общую группу.
 set -eu
 umask 002
 case "${1:-}" in
-    claude | codex) ;;
+    claude | codex)
+        exec "$@"
+        ;;
+    test)
+        # dayforge-agent-exec test '<команда тестов>' — запускается в текущей директории.
+        exec sh -c "$2"
+        ;;
     *)
         echo "dayforge-agent-exec: unsupported command: ${1:-<none>}" >&2
         exit 64
         ;;
 esac
-exec "$@"

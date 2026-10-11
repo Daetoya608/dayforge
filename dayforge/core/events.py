@@ -123,3 +123,62 @@ class LogNotifier:
         import logging
 
         logging.getLogger("dayforge.events").info("%s", event)
+
+
+@dataclass(frozen=True, kw_only=True)
+class TaskPaused(Event):
+    project: ProjectRef
+    task_key: str
+    reason: str
+    details: str | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProjectSkipped(Event):
+    project: ProjectRef
+    reason: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class LimitReached(Event):
+    project: ProjectRef
+    cancelled: list[ProjectRef]
+    resets_at: datetime | None
+    auto_resume: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class RunReport(Event):
+    project: ProjectRef
+    run_id: int
+    text: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class RunFailed(Event):
+    project: ProjectRef
+    run_id: int
+    error: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class MilestoneReleased(Event):
+    project: ProjectRef
+    tag: str
+    title: str
+    url: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProjectCompleted(Event):
+    project: ProjectRef
+    url: str | None
+    days: int
+    tasks_done: int
+    versions: list[str]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SystemRestarted(Event):
+    # [(проект, ключ задачи)]
+    interrupted: list[tuple[ProjectRef, str]]

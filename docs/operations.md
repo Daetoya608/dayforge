@@ -17,7 +17,7 @@
 
 - Общая группа `dayforge-work` (участники `dayforge` и `dayforge-agent`) — **только** для `projects/`: `dayforge-agent:dayforge-work`, права `2770` (setgid). Оба пользователя работают с umask `002`, поэтому файлы рабочих копий доступны обоим.
 - `dayforge-agent` **не** входит в группу `dayforge`. `/srv/dayforge` — `0711` (можно пройти к `projects/`, нельзя прочитать список), `data/` — `0700`, `.env` — `0600`.
-- `dayforge` запускает агентов через обёртку `/usr/local/bin/dayforge-agent-exec` (из `deploy/`): она выставляет umask `002` и запускает `claude` или `codex`. Правило sudoers разрешает только её и пробрасывает переменную с токеном MCP:
+- `dayforge` запускает агентов через обёртку `/usr/local/bin/dayforge-agent-exec` (из `deploy/`): она выставляет umask `002` и запускает `claude`, `codex` или — в режиме `test` — команду тестов шлюза. Тесты выполняют код проекта, поэтому тоже идут от `dayforge-agent`, а не от пользователя системы. Правило sudoers разрешает только её и пробрасывает переменную с токеном MCP:
 
   ```
   Defaults:dayforge env_keep += "DAYFORGE_MCP_TOKEN MAX_THINKING_TOKENS"
