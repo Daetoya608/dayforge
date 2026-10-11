@@ -224,6 +224,10 @@ erDiagram
 | `tg_message_id` | int | |
 | `expires_at`, `created_at`, `decided_at` | datetime | |
 
+### `bot_kv`
+
+Ключ–значение для бота (`key` str PK, `value` JSON, `updated_at`): состояния диалогов aiogram (FSM), частичные ответы на вопросы, выбор в `/next`, предложения агента изменить план. Нужна, чтобы диалоги переживали рестарт.
+
 ### `settings`
 
 Ключ–значение (`key` str PK, `value` JSON).

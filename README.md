@@ -2,7 +2,7 @@
 
 **English** | [Русский](README.ru.md)
 
-> Status: **early development**. The skeleton is in place (config, DB, bot, MCP server); features are in progress.
+> Status: **MVP implemented**, covered by automated tests with fake agent CLIs and a fake Telegram API; checks against real Claude Code / Codex, Telegram and GitHub are still ahead.
 > The detailed specification is in [docs/](docs/README.md) (in Russian).
 
 A self-hosted system where **AI agents (Claude Code, Codex) build software projects from the user's idea**. The work doesn't happen in one go: it follows a **daily plan** the user has approved. Everything is controlled through a Telegram bot.
@@ -290,7 +290,11 @@ flowchart LR
 ```
 dayforge/                 # repository
 ├── dayforge/             # Python package
-│   ├── app.py            # process wiring: bot, scheduler, MCP
+│   ├── app.py            # process wiring: bot, runner, scheduler, MCP
+│   ├── services.py       # core services container
+│   ├── orchestrator.py   # planner, plan approval, replanning, releases
+│   ├── chat.py           # system-agent conversation (/agent)
+│   ├── actions.py        # actions run after user confirmation
 │   ├── config.py         # configuration from .env
 │   ├── bot/              # Telegram handlers, keyboards, dialogs
 │   ├── core/             # domain logic: projects, plans, calendar, tasks, settings
@@ -303,6 +307,7 @@ dayforge/                 # repository
 │   └── db/               # models and migrations
 ├── prompts/              # prompt templates for agent roles
 ├── deploy/               # systemd unit, agent launch wrapper, sudoers
+├── scripts/              # restore.sh — restore from backup
 ├── docs/                 # detailed specification
 ├── tests/
 ├── alembic.ini

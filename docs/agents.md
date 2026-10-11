@@ -84,18 +84,17 @@ claude -p "<prompt>" \
 ## Codex
 
 ```bash
-codex exec --json \
+codex exec [resume <cli_session_id>] --json \
   --model <model> \
-  -c model_reasoning_effort=<effort> \
   -c 'mcp_servers.dayforge.url="http://127.0.0.1:8765/mcp/<role>"' \
   -c 'mcp_servers.dayforge.bearer_token_env_var="DAYFORGE_MCP_TOKEN"' \
+  --cd <рабочая директория> --skip-git-repo-check \
+  -c 'model_reasoning_effort="<effort>"' \
   --dangerously-bypass-approvals-and-sandbox \
   "<prompt>"
-
-codex exec resume <cli_session_id> --json … "<prompt>"
 ```
 
-- Системный промпт роли передаётся в начале `prompt` (или через `AGENTS.md`-оверрайд — *уточнить при реализации*).
+- Системный промпт роли передаётся в начале `prompt` (отделён `---`): отдельного флага у `codex exec` нет.
 - Только чтение: `--sandbox read-only` вместо обхода песочницы.
 - Если HTTP-транспорт MCP недоступен в установленной версии — запасной вариант: stdio-прокси `dayforge-mcp-proxy`, который пробрасывает stdio в HTTP-эндпоинт с токеном.
 - Авторизация: `codex login` (device code) под `dayforge-agent`.

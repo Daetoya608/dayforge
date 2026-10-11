@@ -6,13 +6,13 @@ import pytest
 from dayforge.core.secrets import EnvFile
 
 
-def test_set_creates_file_with_private_permissions(tmp_path: Path) -> None:
+def test_set_creates_file_readable_only_by_owner_and_group(tmp_path: Path) -> None:
     env = EnvFile(tmp_path / ".env")
 
     env.set("STRIPE_API_KEY", "sk_test_123")
 
     assert (tmp_path / ".env").read_text() == 'STRIPE_API_KEY="sk_test_123"\n'
-    assert stat.S_IMODE((tmp_path / ".env").stat().st_mode) == 0o600
+    assert stat.S_IMODE((tmp_path / ".env").stat().st_mode) == 0o660
     assert env.has("STRIPE_API_KEY")
 
 

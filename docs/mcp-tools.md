@@ -148,7 +148,7 @@
 |---|---|---|
 | `list_projects` | `include_archived=false` | slug, название, статус, приоритет, день `current_day/planned_days`, прогноз окончания, открытые вопросы |
 | `get_project` | `project` | Настройки, текущий план (структура), задачи со статусами, последние 10 коммитов, вехи, путь к рабочей директории |
-| `get_calendar` | `from`, `to` (даты, ≤ 93 дней) | По датам: какие проекты, использован ли слот, общие выходные; недельные шаблоны |
+| `get_calendar` | `date_from`, `date_to` (даты, ≤ 93 дней; по умолчанию — 4 недели с сегодня) | По датам: какие проекты, использован ли слот, общие выходные; недельные шаблоны |
 | `get_runs` | `project?`, `limit=20` | Запуски: режим, статус, день, время, задачи, ошибки |
 | `get_run_log` | `run_id`, `tail=200` | Хвост логов сессий запуска (события, ошибки) |
 | `get_pending_questions` | — | Открытые вопросы: id, проект, задача, текст, варианты |
@@ -157,7 +157,7 @@
 
 | Инструмент | Параметры | Подтверждение |
 |---|---|:-:|
-| `create_project` | `idea`, `days`, `priority?`, `stack?`, `planner_agent?`, `executor_agent?`, `weekdays?` | |
+| `create_project` | `idea`, `days`, `name?`, `slug?`, `priority?`, `stack?`, `planner_agent?`, `executor_agent?`, `weekdays?` | |
 | `request_replan` | `project`, `instructions` | результат — diff плана |
 | `add_task` | `project`, `title`, `description`, `acceptance_criteria?`, `when: now\|next` | |
 | `update_calendar` | `changes[]` (см. ниже) | при массовых изменениях |

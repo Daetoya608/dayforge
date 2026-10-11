@@ -7,6 +7,7 @@ import os
 import re
 from pathlib import Path
 
+ENV_FILE_MODE = 0o660
 SECRET_NAME_RE = re.compile(r"^[A-Z][A-Z0-9_]{1,63}$")
 _LINE_RE = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=")
 
@@ -39,7 +40,11 @@ class EnvFile:
         return [v for v in result if v]
 
     def set(self, name: str, value: str) -> None:
-        """Добавляет или заменяет переменную, не трогая остальные строки. Права файла — 600."""
+        """Добавляет или заменяет переменную, не трогая остальные строки.
+
+        Права 660: пишет система, читает агент — оба через группу рабочих копий
+        (docs/operations.md#пользователи); остальным пользователям сервера доступа нет.
+        """
         if not SECRET_NAME_RE.fullmatch(name):
             raise ValueError(f"недопустимое имя секрета: {name!r}")
         lines = self.path.read_text().splitlines() if self.path.exists() else []
@@ -53,11 +58,11 @@ class EnvFile:
             lines.append(entry)
 
         tmp = self.path.with_name(self.path.name + ".tmp")
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, ENV_FILE_MODE)
         with os.fdopen(fd, "w") as file:
             file.write("\n".join(lines) + "\n")
         os.replace(tmp, self.path)
-        os.chmod(self.path, 0o600)
+        os.chmod(self.path, ENV_FILE_MODE)
 
 
 def _quote(value: str) -> str:

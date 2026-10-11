@@ -45,9 +45,13 @@ flowchart TB
 |---|---|
 | `dayforge/bot` | Команды, диалоги (FSM aiogram), кнопки, приём ответов и секретов. Реализация `Notifier` — `TelegramNotifier` |
 | `dayforge/core` | Сервисы предметной области (см. ниже). Единственный слой, который пишет в БД |
-| `dayforge/scheduler` | Задания по времени: ежедневный запуск, бэкап, напоминания, истечение ожидающих действий, сброс чат-сессий |
-| `dayforge/runner` | Очередь запусков, выполнение проекта и задачи, шлюз перед мержем, watchdog |
-| `dayforge/agents` | `AgentAdapter` и реализации `claude_code`, `codex`; сборка промптов из `prompts/` |
+| `dayforge/scheduler` | Задания по времени: ежедневный запуск, бэкап, истечение ожидающих действий, чистка логов сессий |
+| `dayforge/runner` | Очередь запусков, выполнение проекта и задачи, шлюз перед мержем, релизы, восстановление после рестарта; git-шаги — `runner/gitops.py` |
+| `dayforge/agents` | `AgentAdapter`, реализации `claude_code` и `codex`, общий запуск CLI (`process.py`), запуск сессии с watchdog (`launcher.py`) |
+| `dayforge/orchestrator.py` | Планировщик (интерактивная линия), утверждение и отклонение плана, перепланирование, ручной релиз, архивирование, удаление |
+| `dayforge/chat.py` | Чат-сессия системного агента для `/agent` |
+| `dayforge/services.py` | Контейнер сервисов ядра и интерфейс `Orchestrator` |
+| `dayforge/actions.py` | Действия, выполняемые после подтверждения (календарь оптом, релиз, архив, удаление) |
 | `dayforge/mcp_server` | MCP-сервер: три набора инструментов (executor, planner, system), авторизация по токену сессии |
 | `dayforge/vcs` | git-операции в рабочих директориях; `VcsProvider` (GitHub) |
 | `dayforge/db` | Модели SQLAlchemy, миграции Alembic, сессии БД |
