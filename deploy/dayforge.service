@@ -1,0 +1,19 @@
+[Unit]
+Description=Dayforge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dayforge
+Group=dayforge
+WorkingDirectory=/srv/dayforge/app
+EnvironmentFile=/srv/dayforge/.env
+UMask=0002
+ExecStart=/srv/dayforge/app/.venv/bin/python -m dayforge
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

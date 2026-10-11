@@ -1,0 +1,13 @@
+#!/bin/sh
+# Запуск CLI агента от dayforge-agent (docs/operations.md#пользователи).
+# Разрешены только claude и codex; umask 002 — чтобы система могла работать с файлами через группу.
+set -eu
+umask 002
+case "${1:-}" in
+    claude | codex) ;;
+    *)
+        echo "dayforge-agent-exec: unsupported command: ${1:-<none>}" >&2
+        exit 64
+        ;;
+esac
+exec "$@"

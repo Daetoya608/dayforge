@@ -1,0 +1,4 @@
+Миграции Alembic. URL БД берётся из BASE_DIR (.env).
+
+Новая миграция после изменения моделей:
+    uv run alembic revision --autogenerate -m "<описание>"
