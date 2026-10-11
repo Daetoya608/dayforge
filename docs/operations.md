@@ -137,7 +137,7 @@ sudo systemctl restart dayforge
 **Ежедневное задание** (`backup_time`; если идёт запуск — после его окончания):
 
 1. Повторный push всех проектов (на случай упавших push).
-2. `sqlite3 data/dayforge.sqlite3 ".backup data/backup/dayforge.sqlite3"` — консистентный снапшот работающей БД.
+2. Снапшот БД через SQLite Online Backup API (`sqlite3.Connection.backup` — тот же механизм, что `.backup` в CLI) — консистентный на работающей базе.
 3. Копии `.env` всех проектов в `data/backup/env/<slug>.env`.
 4. `restic backup data/backup /srv/dayforge/.env --tag daily`.
 5. `restic forget --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune`.
