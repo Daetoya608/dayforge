@@ -76,7 +76,9 @@ class VcsProvider(Protocol):
 
 Сами git-операции (commit, merge, push) выполняются локальным `git` и от провайдера не зависят. Провайдер отвечает только за API хостинга и URL.
 
-**GitHub:** REST API через `httpx`; fine-grained personal access token с правами `Administration: write` (создание репозиториев) и `Contents: write`. Push по HTTPS: токен передаётся только командам `git push` раннера через `GIT_ASKPASS`, в глобальный конфиг не пишется.
+**GitHub:** REST API через `httpx`; fine-grained personal access token с правами `Administration: write` (создание репозиториев) и `Contents: write`. Push по HTTPS: токен передаётся только командам `git push` раннера — заголовком `http.extraheader` через переменные окружения процесса git (`GIT_CONFIG_COUNT`/`KEY`/`VALUE`). В конфиг репозитория и на диск он не попадает.
+
+Без `GITHUB_TOKEN` система работает локально: репозитории не публикуются, ссылки в отчётах не строятся.
 
 ## Будущее: ручные изменения пользователя
 
