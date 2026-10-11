@@ -194,3 +194,14 @@ class PlanningFailed(Event):
 class DaysShortage(Event):
     project: ProjectRef
     missing_days: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class PendingActionExpired(Event):
+    action_id: int
+    tg_message_id: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class BackupFailed(Event):
+    error: str
