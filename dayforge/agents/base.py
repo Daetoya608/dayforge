@@ -25,6 +25,8 @@ class SessionRequest:
     log_path: Path
     resume_id: str | None = None
     read_only: bool = False
+    # Значения секретов проекта: в логе сессии заменяются на ***.
+    mask_values: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, kw_only=True)

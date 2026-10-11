@@ -15,6 +15,8 @@ def _environment() -> Environment:
         loader=FileSystemLoader(PROMPTS_DIR),
         undefined=StrictUndefined,
         keep_trailing_newline=True,
+        trim_blocks=True,
+        lstrip_blocks=True,
         autoescape=False,  # Markdown для агентов, не HTML
     )
 
