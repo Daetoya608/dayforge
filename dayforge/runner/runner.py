@@ -5,7 +5,7 @@ import contextlib
 import logging
 from collections import defaultdict
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -163,9 +163,15 @@ class Runner:
         ref = ProjectRef.of(project)
         if project.status is ProjectStatus.BLOCKED:
             reason = "ждёт ответа на вопрос"
-            if run.mode is RunMode.SCHEDULED:
+            if run.mode is not RunMode.SCHEDULED:
+                await self._s.notifier.send(ProjectSkipped(project=ref, reason=reason))
+                return RunStatus.SKIPPED, None
+            # Пропуск слота — это и напоминание о вопросе, но не чаще question_reminder_hours.
+            every = timedelta(hours=await self._s.settings.get("question_reminder_hours"))
+            due = await self._s.questions.due_reminders(now=utcnow(), every=every)
+            if any(q.project_id == project.id for q in due):
                 reason += " — слот пропущен, прогноз сдвинется"
-            await self._s.notifier.send(ProjectSkipped(project=ref, reason=reason))
+                await self._s.notifier.send(ProjectSkipped(project=ref, reason=reason))
             return RunStatus.SKIPPED, None
         if project.status is not ProjectStatus.ACTIVE:
             return RunStatus.CANCELLED, None

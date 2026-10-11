@@ -244,6 +244,9 @@ async def test_blocked_project_skips_scheduled_slot(
     services: Services, notifier: RecordingNotifier
 ) -> None:
     project = await approved_project(services)
+    await services.questions.ask(
+        project_id=project.id, task_id=None, session_id=None, questions=[{"text": "?"}]
+    )
     await services.projects.set_status(project.id, ProjectStatus.BLOCKED)
     runner, adapter = make_runner(services, good_agent)
 
@@ -253,8 +256,17 @@ async def test_blocked_project_skips_scheduled_slot(
     await runner.drain()
 
     assert (await services.runs.get(queued.id)).status is RunStatus.SKIPPED
-    assert "слот пропущен" in notifier.of_type(ProjectSkipped)[0].reason
     assert adapter.calls == []
+    # Вопрос только что задан — напоминать рано.
+    assert notifier.of_type(ProjectSkipped) == []
+
+    await services.settings.set("question_reminder_hours", 0)
+    (again,) = await services.runs.enqueue(
+        [project.id], mode=RunMode.SCHEDULED, trigger=RunTrigger.SCHEDULER
+    )
+    await runner.drain()
+    assert (await services.runs.get(again.id)).status is RunStatus.SKIPPED
+    assert "слот пропущен" in notifier.of_type(ProjectSkipped)[0].reason
 
 
 async def test_limit_stops_whole_queue(

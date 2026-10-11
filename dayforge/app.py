@@ -6,6 +6,7 @@
 import asyncio
 import contextlib
 import logging
+from datetime import timedelta
 
 from dayforge.actions import register_action_handlers
 from dayforge.agents import build_adapters
@@ -102,6 +103,8 @@ async def main() -> None:
         # Агенты подключаются к MCP — он должен подняться раньше раннера.
         while not mcp_server.started and not mcp_task.done():  # noqa: ASYNC110
             await asyncio.sleep(0.05)
+        ttl_hours = await services.settings.get("pending_action_ttl_hours")
+        services.actions.set_ttl(timedelta(hours=ttl_hours))
         await runner.recover()
         await orchestrator.recover()
         runner.start()

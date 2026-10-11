@@ -41,6 +41,9 @@ class PendingActionService:
         self._ttl = ttl
         self._handlers: dict[str, ActionHandler] = {}
 
+    def set_ttl(self, ttl: timedelta) -> None:
+        self._ttl = ttl
+
     def register(self, kind: str, handler: ActionHandler) -> None:
         self._handlers[kind] = handler
 
