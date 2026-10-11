@@ -3,13 +3,16 @@
 import asyncio
 import logging
 
+from dayforge.actions import register_action_handlers
 from dayforge.bot.app import create_bot, create_dispatcher
 from dayforge.config import Config
-from dayforge.core.settings import SettingsService
+from dayforge.core.events import LogNotifier
 from dayforge.db.session import create_engine, create_session_factory
 from dayforge.logging_setup import configure_logging
-from dayforge.mcp_server.app import build_app, build_servers, create_server
+from dayforge.mcp_server.app import build_app, create_server
 from dayforge.scheduler import create_scheduler
+from dayforge.services import build_services
+from dayforge.vcs.github import GitHubProvider
 
 log = logging.getLogger(__name__)
 
@@ -25,11 +28,23 @@ async def main() -> None:
     _prepare_dirs(config)
 
     engine = create_engine(config.db_url)
-    settings = SettingsService(create_session_factory(engine))
+    provider = (
+        GitHubProvider(config.github_token.get_secret_value(), config.github_owner)
+        if config.github_token and config.github_owner
+        else None
+    )
+    services = build_services(
+        create_session_factory(engine),
+        LogNotifier(),
+        projects_dir=config.projects_dir,
+        sessions_log_dir=config.sessions_log_dir,
+        vcs_provider=provider,
+    )
+    register_action_handlers(services)
 
-    scheduler = create_scheduler(await settings.get("timezone"))
+    scheduler = create_scheduler(await services.settings.get("timezone"))
     mcp_server = create_server(
-        build_app(build_servers(), host=config.mcp_host),
+        build_app(services, host=config.mcp_host),
         host=config.mcp_host,
         port=config.mcp_port,
     )
@@ -47,5 +62,7 @@ async def main() -> None:
         await mcp_task
         scheduler.shutdown(wait=False)
         await bot.session.close()
+        if provider is not None:
+            await provider.aclose()
         await engine.dispose()
         log.info("Dayforge stopped")

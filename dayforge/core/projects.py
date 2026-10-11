@@ -12,10 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from dayforge import prompts
 from dayforge.core.enums import ProjectStatus
 from dayforge.core.settings import SettingsService
+from dayforge.db.base import utcnow
 from dayforge.db.models import Project
 from dayforge.vcs.git import Git
 
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$")
+AGENTS = ("claude_code", "codex")
 BADGES = ["🟦", "🟩", "🟧", "🟪", "🟥", "🟨", "🟫", "⬛", "⬜"]
 
 _TRANSLIT = str.maketrans(
@@ -119,6 +121,61 @@ class ProjectService:
             raise ProjectError(f"проекта {slug} нет")
         return project
 
+    async def get_by_id(self, project_id: int) -> Project:
+        async with self._session_factory() as session:
+            project = await session.get(Project, project_id)
+        if project is None:
+            raise ProjectError(f"проекта {project_id} нет")
+        return project
+
+    async def set_status(self, project_id: int, status: ProjectStatus) -> Project:
+        async with self._session_factory() as session, session.begin():
+            project = await session.get(Project, project_id)
+            if project is None:
+                raise ProjectError(f"проекта {project_id} нет")
+            project.status = status
+            if status is ProjectStatus.COMPLETED:
+                project.completed_at = utcnow()
+            return project
+
+    async def pause(self, project_id: int) -> Project:
+        project = await self.get_by_id(project_id)
+        if project.status not in (ProjectStatus.ACTIVE, ProjectStatus.BLOCKED):
+            raise ProjectError(
+                f"проект {project.slug} в статусе {project.status}, пауза невозможна"
+            )
+        return await self.set_status(project_id, ProjectStatus.PAUSED)
+
+    async def resume(self, project_id: int, *, has_open_questions: bool) -> Project:
+        project = await self.get_by_id(project_id)
+        if project.status is not ProjectStatus.PAUSED:
+            raise ProjectError(f"проект {project.slug} не на паузе")
+        status = ProjectStatus.BLOCKED if has_open_questions else ProjectStatus.ACTIVE
+        return await self.set_status(project_id, status)
+
+    async def update_settings(
+        self,
+        project_id: int,
+        *,
+        name: str | None = None,
+        badge: str | None = None,
+        planner_agent: dict[str, Any] | None = None,
+        executor_agent: dict[str, Any] | None = None,
+    ) -> Project:
+        async with self._session_factory() as session, session.begin():
+            project = await session.get(Project, project_id)
+            if project is None:
+                raise ProjectError(f"проекта {project_id} нет")
+            if name is not None and name.strip():
+                project.name = name.strip()
+            if badge is not None and badge.strip():
+                project.badge = badge.strip()[:8]
+            if planner_agent is not None:
+                project.planner_agent = _agent_config(planner_agent)
+            if executor_agent is not None:
+                project.executor_agent = _agent_config(executor_agent)
+            return project
+
     async def set_priority(self, order: list[str]) -> None:
         """Порядок проектов в очереди дня: полный список slug неархивных проектов."""
         async with self._session_factory() as session, session.begin():
@@ -137,6 +194,12 @@ class ProjectService:
             .order_by(Project.priority, Project.id)
         )
         return list(await session.scalars(query))
+
+
+def _agent_config(raw: dict[str, Any]) -> dict[str, Any]:
+    if raw.get("agent") not in AGENTS or not raw.get("model"):
+        raise ProjectError(f"агент — один из {', '.join(AGENTS)}, модель обязательна")
+    return {"agent": raw["agent"], "model": str(raw["model"]), "effort": raw.get("effort")}
 
 
 def _clamp_position(position: int | None, count: int) -> int:

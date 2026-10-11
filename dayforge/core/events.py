@@ -80,3 +80,46 @@ class RecordingNotifier:
 
     def of_type[E: Event](self, kind: type[E]) -> list[E]:
         return [e for e in self.events if isinstance(e, kind)]
+
+
+@dataclass(frozen=True, kw_only=True)
+class PlanProposed(Event):
+    project: ProjectRef
+    plan_id: int
+    version: int
+    summary: str
+    change_summary: str | None
+    days: int
+    # [(key, title, version)]
+    milestones: list[tuple[str, str, str]]
+    warnings: list[str]
+    # None — первый план проекта.
+    diff: list[str] | None
+    forecast_end: str | None
+    missing_days: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class TaskFailed(Event):
+    project: ProjectRef
+    task_id: int
+    task_key: str
+    reason: str
+    suggestion: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class PlanChangeProposed(Event):
+    project: ProjectRef
+    task_key: str | None
+    reason: str
+    proposal: str
+
+
+class LogNotifier:
+    """Notifier, который только пишет события в лог — пока бот не подключён."""
+
+    async def send(self, event: Event) -> None:
+        import logging
+
+        logging.getLogger("dayforge.events").info("%s", event)

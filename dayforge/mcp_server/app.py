@@ -9,23 +9,53 @@ from collections.abc import AsyncIterator
 import uvicorn
 from mcp.server.mcpserver import MCPServer
 from starlette.applications import Starlette
+from starlette.middleware import Middleware
 from starlette.routing import BaseRoute
 
 from dayforge.core.enums import AgentRole
+from dayforge.mcp_server import executor, planner, system
+from dayforge.mcp_server.auth import SessionAuthMiddleware
+from dayforge.services import Services
 
 # Имя сервера в конфиге агента: инструменты видны как mcp__dayforge__<имя>.
 SERVER_NAME = "dayforge"
+
+INSTRUCTIONS = {
+    AgentRole.EXECUTOR: (
+        "Инструменты Dayforge для исполнителя задачи. Закончи сессию одним из вызовов: "
+        "complete_task, ask_user, request_secret или fail_task."
+    ),
+    AgentRole.PLANNER: (
+        "Инструменты Dayforge для планировщика: уточняющие вопросы (ask_user) и отправка плана "
+        "(submit_plan)."
+    ),
+    AgentRole.SYSTEM: (
+        "Инструменты Dayforge для системного агента: чтение состояния системы и изменения "
+        "(проекты, планы, календарь, запуски)."
+    ),
+}
+REGISTRARS = {
+    AgentRole.EXECUTOR: executor.register,
+    AgentRole.PLANNER: planner.register,
+    AgentRole.SYSTEM: system.register,
+}
 
 
 def endpoint_path(role: AgentRole) -> str:
     return f"/mcp/{role.value}"
 
 
-def build_servers() -> dict[AgentRole, MCPServer]:
-    return {role: MCPServer(name=SERVER_NAME) for role in AgentRole}
+def build_servers(services: Services) -> dict[AgentRole, MCPServer]:
+    servers = {}
+    for role in AgentRole:
+        server = MCPServer(name=SERVER_NAME, instructions=INSTRUCTIONS[role])
+        REGISTRARS[role](server, services)
+        servers[role] = server
+    return servers
 
 
-def build_app(servers: dict[AgentRole, MCPServer], *, host: str) -> Starlette:
+def build_app(services: Services, *, host: str) -> Starlette:
+    servers = build_servers(services)
     routes: list[BaseRoute] = []
     for role, server in servers.items():
         sub_app = server.streamable_http_app(streamable_http_path=endpoint_path(role), host=host)
@@ -38,7 +68,11 @@ def build_app(servers: dict[AgentRole, MCPServer], *, host: str) -> Starlette:
                 await stack.enter_async_context(server.session_manager.run())
             yield
 
-    return Starlette(routes=routes, lifespan=lifespan)
+    return Starlette(
+        routes=routes,
+        lifespan=lifespan,
+        middleware=[Middleware(SessionAuthMiddleware, sessions=services.sessions)],
+    )
 
 
 class EmbeddedServer(uvicorn.Server):
