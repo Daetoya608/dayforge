@@ -46,3 +46,5 @@ ignore = ["RUF001", "RUF002", "RUF003"]
 [tool.ruff.lint.per-file-ignores]
 # В тестах блокирующий файловый ввод-вывод внутри async — норма.
 "tests/**" = ["ASYNC230", "ASYNC240"]
+# Автогенерация Alembic: импорт типов колонок нужен не во всех миграциях.
+"dayforge/db/migrations/versions/*" = ["F401"]

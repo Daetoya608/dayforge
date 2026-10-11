@@ -184,6 +184,65 @@ class PlanService:
                 raise PlanError("у проекта нет утверждённого плана")
             return await self._render(session, project, plan)
 
+    async def render_proposed(self, plan_id: int) -> str:
+        """PLAN.md для плана на согласовании — чтобы пользователь увидел его до утверждения."""
+        async with self._session_factory() as session:
+            plan = await session.get(Plan, plan_id)
+            if plan is None:
+                raise PlanError(f"плана {plan_id} нет")
+            project = await _project(session, plan.project_id)
+            content = PlanContent.model_validate(plan.content)
+            done = {
+                t.key: t for t in await _tasks(session, project.id) if t.status is TaskStatus.DONE
+            }
+        forecast = await self._calendar.forecast(
+            project, today=await self._calendar.today(), planned_days=content.days[-1].day
+        )
+        tasks = [
+            TaskView(
+                key=t.key,
+                title=t.title,
+                description=t.description,
+                acceptance_criteria=t.acceptance_criteria,
+                day_number=t.day_number,
+                position=t.position,
+                status=TaskStatus.DONE,
+            )
+            for t in done.values()
+        ] + [
+            TaskView(
+                key=task.key,
+                title=task.title,
+                description=task.description,
+                acceptance_criteria=list(task.acceptance_criteria),
+                day_number=day.day,
+                position=position,
+                status=TaskStatus.PENDING,
+            )
+            for day in content.days
+            for position, task in enumerate(day.tasks)
+        ]
+        goals = {int(d): g for d, g in project.day_goals.items()} | {
+            d.day: d.goal for d in content.days
+        }
+        return render_plan(
+            PlanView(
+                name=project.name,
+                version=plan.version,
+                summary=content.summary,
+                test_command=content.test_command,
+                current_day=project.current_day,
+                planned_days=content.days[-1].day,
+                forecast=forecast,
+                day_goals=goals,
+                milestones=[
+                    MilestoneView(key=m.key, title=m.title, version=m.version, released=False)
+                    for m in content.milestones
+                ],
+                tasks=tasks,
+            )
+        )
+
     async def _render(self, session: AsyncSession, project: Project, plan: Plan) -> str:
         milestones = await session.scalars(
             select(Milestone).where(Milestone.project_id == project.id).order_by(Milestone.id)

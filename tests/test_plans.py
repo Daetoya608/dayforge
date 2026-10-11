@@ -259,3 +259,14 @@ class TestReplan:
 async def test_render_requires_approved_plan(plans: PlanService, project: Project) -> None:
     with pytest.raises(PlanError):
         await plans.render(project.id)
+
+
+async def test_render_proposed_plan_before_approval(plans: PlanService, project: Project) -> None:
+    result = await plans.submit(project.id, make_plan())
+
+    text = await plans.render_proposed(result.plan_id)
+
+    assert text.startswith("# План: Todo\n")
+    assert "> Версия плана: 1" in text
+    assert "- [ ] **T1** Задача T1" in text
+    assert "## День 3 — Отчёты" in text

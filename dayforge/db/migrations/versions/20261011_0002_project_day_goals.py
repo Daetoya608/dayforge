@@ -10,7 +10,7 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-import dayforge.db.base  # noqa: F401 — типы колонок в автогенерации
+import dayforge.db.base
 
 revision: str = "0002"
 down_revision: str | None = "0001"

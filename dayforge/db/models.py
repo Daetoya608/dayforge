@@ -281,3 +281,13 @@ class Setting(Base):
 
     key: Mapped[str] = mapped_column(sa.String(64), primary_key=True)
     value: Mapped[Any] = mapped_column(sa.JSON)
+
+
+class BotValue(Base):
+    """Ключ–значение для бота: состояния диалогов (FSM), частичные ответы, служебные связи."""
+
+    __tablename__ = "bot_kv"
+
+    key: Mapped[str] = mapped_column(sa.String(200), primary_key=True)
+    value: Mapped[Any] = mapped_column(sa.JSON)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
