@@ -55,6 +55,11 @@ class Project(IdMixin, CreatedAtMixin, Base):
     planner_agent: Mapped[JsonDict] = mapped_column(sa.JSON)
     executor_agent: Mapped[JsonDict] = mapped_column(sa.JSON)
     test_command: Mapped[str | None] = mapped_column(sa.Text)
+    # Цели дней из всех утверждённых версий плана: {"3": "Категории"}. Нужны PLAN.md,
+    # потому что выполненные дни в новые версии плана не входят.
+    day_goals: Mapped[dict[str, str]] = mapped_column(
+        sa.JSON, default=dict, server_default=sa.text("'{}'")
+    )
     repo_path: Mapped[str] = mapped_column(sa.Text)
     vcs_provider: Mapped[str] = mapped_column(sa.String(32), default="github")
     remote_url: Mapped[str | None] = mapped_column(sa.Text)

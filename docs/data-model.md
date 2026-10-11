@@ -43,6 +43,7 @@ erDiagram
 | `planner_agent` | JSON | `{"agent": "claude_code", "model": "…", "effort": "high"}` |
 | `executor_agent` | JSON | То же для исполнителя |
 | `test_command` | str, null | Команда тестов из плана |
+| `day_goals` | JSON | Цели дней из всех утверждённых версий плана (`{"3": "Категории"}`) — для `PLAN.md`: выполненные дни в новые версии плана не входят |
 | `repo_path` | str | Рабочая директория |
 | `vcs_provider` | str | `github` |
 | `remote_url` | str, null | URL удалённого репозитория (после утверждения) |
