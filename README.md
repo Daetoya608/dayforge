@@ -310,6 +310,8 @@ dayforge/                 # repository
 ├── scripts/              # restore.sh — restore from backup
 ├── docs/                 # detailed specification
 ├── tests/
+├── AGENTS.md             # rules for agents (CLAUDE.md points to it)
+├── Makefile              # make help — development and server commands
 ├── alembic.ini
 ├── .env.example
 └── pyproject.toml
@@ -353,6 +355,8 @@ dayforge/                 # repository
 - Parallel runs, Docker isolation, multiple users.
 
 ## Development
+
+Agents and developers should start with [AGENTS.md](AGENTS.md) and [docs/development.md](docs/development.md) (in Russian). Commands: `make help`.
 
 ```bash
 uv sync

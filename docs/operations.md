@@ -21,6 +21,7 @@
 
   ```
   Defaults:dayforge env_keep += "DAYFORGE_MCP_TOKEN"
+  Defaults:dayforge !log_allowed
   dayforge ALL=(dayforge-agent) NOPASSWD: /usr/local/bin/dayforge-agent-exec
   ```
 

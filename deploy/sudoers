@@ -1,3 +1,5 @@
 # /etc/sudoers.d/dayforge — проверять через: visudo -cf deploy/sudoers
 Defaults:dayforge env_keep += "DAYFORGE_MCP_TOKEN"
+# Не писать в журнал командные строки агентов: там целые промпты (секретов нет, но шумно).
+Defaults:dayforge !log_allowed
 dayforge ALL=(dayforge-agent) NOPASSWD: /usr/local/bin/dayforge-agent-exec
