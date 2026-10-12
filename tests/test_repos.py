@@ -72,3 +72,40 @@ async def test_without_provider_everything_stays_local(
 
     assert await sync.publish(project.id) is None
     assert not await Git(Path(project.repo_path)).has_remote()
+
+
+async def test_status_compares_local_and_remote_refs(
+    session_factory: async_sessionmaker[AsyncSession], project: Project, tmp_path: Path
+) -> None:
+    remotes = tmp_path / "remotes"
+    remotes.mkdir()
+    sync = RepoSync(session_factory, LocalProvider(remotes))  # type: ignore[arg-type]
+    await sync.publish(project.id)
+
+    status = await sync.status(project.id)
+    assert status["published"] and status["all_in_sync"]
+    assert {r["ref"] for r in status["refs"]} == {"refs/heads/main", "refs/heads/dev"}
+
+    git = Git(Path(project.repo_path))
+    await git.checkout("dev")
+    (git.cwd / "new.txt").write_text("x\n")
+    await git.commit_all("feat: new")
+    await git.tag("v0.1.0", "release")
+
+    status = await sync.status(project.id)
+    states = {r["ref"]: r["state"] for r in status["refs"]}
+    assert states == {
+        "refs/heads/dev": "расходится",
+        "refs/heads/main": "в синхроне",
+        "refs/tags/v0.1.0": "не запушено",
+    }
+    assert not status["all_in_sync"]
+
+
+async def test_status_without_provider(
+    session_factory: async_sessionmaker[AsyncSession], project: Project
+) -> None:
+    status = await RepoSync(session_factory, None).status(project.id)
+
+    assert status["published"] is False
+    assert [r["ref"] for r in status["refs"]] == ["refs/heads/dev", "refs/heads/main"]

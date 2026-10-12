@@ -5,6 +5,7 @@
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -48,6 +49,49 @@ class RepoSync:
             await git.add_remote(remote_url)
         await self.push(repo_path, "main", "dev", tags=True)
         return remote_url
+
+    async def status(self, project_id: int) -> dict[str, Any]:
+        """Ветки и теги рабочей копии против удалённого репозитория — для системного агента."""
+        async with self._session_factory() as session:
+            project = await session.get(Project, project_id)
+        if project is None:
+            raise ValueError(f"проекта {project_id} нет")
+        git = Git(Path(project.repo_path))
+        local = await git.show_refs()
+        result: dict[str, Any] = {
+            "branch": await git.current_branch(),
+            "clean": await git.is_clean(),
+            "remote_url": project.remote_url,
+        }
+        if self.provider is None or project.remote_url is None:
+            result["published"] = False
+            result["refs"] = [{"ref": ref, "local": sha[:7]} for ref, sha in sorted(local.items())]
+            return result
+
+        remote = await git.ls_remote(project.remote_url, env=self.provider.git_env())
+        refs = []
+        for ref in sorted(local.keys() | remote.keys()):
+            here, there = local.get(ref), remote.get(ref)
+            if here == there:
+                state = "в синхроне"
+            elif there is None:
+                state = "не запушено"
+            elif here is None:
+                state = "только на удалённом"
+            else:
+                state = "расходится"
+            refs.append(
+                {
+                    "ref": ref,
+                    "local": here[:7] if here else None,
+                    "remote": there[:7] if there else None,
+                    "state": state,
+                }
+            )
+        result["published"] = True
+        result["refs"] = refs
+        result["all_in_sync"] = all(r["state"] == "в синхроне" for r in refs)
+        return result
 
     async def push(self, repo_path: Path, *refspecs: str, tags: bool = False) -> None:
         if self.provider is None:

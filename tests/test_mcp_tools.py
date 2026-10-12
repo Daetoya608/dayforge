@@ -348,6 +348,30 @@ class TestSystem:
         decision = await services.actions.decide(1, confirm=True)
         assert decision.result is not None and "Календарь обновлён" in decision.result
 
+    async def test_git_tools(
+        self,
+        port: int,
+        services: Services,
+        active_project: Project,
+        orchestrator: FakeOrchestrator,
+    ) -> None:
+        from dayforge.vcs.git import Git
+
+        git = Git(Path(active_project.repo_path))
+        await git.commit_all("chore: init")
+        token = await self.system_client_token(services)
+        async with client(port, AgentRole.SYSTEM, token) as mcp:
+            _, status = await call(mcp, "get_repo_status", project="todo-bot")
+            _, log = await call(mcp, "get_git_log", project="todo-bot", ref="main")
+            error, bad = await call(mcp, "get_git_log", project="todo-bot", ref="nope")
+            _, pushed = await call(mcp, "push_project", project="todo-bot")
+
+        assert status["published"] is False and status["branch"] == "main"
+        assert [c["subject"] for c in log["commits"]] == ["chore: init"]
+        assert error and bad["error"] == "git_error"
+        assert pushed == {"status": "done", "message": "pushed"}
+        assert ("push_project", active_project.id) in orchestrator.calls
+
     async def test_secret_answers_are_refused(
         self,
         port: int,

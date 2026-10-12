@@ -253,3 +253,10 @@ async def test_chat_fallback_on_error(services: Services, tmp_path: Path) -> Non
     chat = ChatAgent(services, launcher, projects_dir=tmp_path)
 
     assert "лимит" in await chat.ask("привет")
+
+
+async def test_push_without_github_is_explained(services: Services) -> None:
+    orchestrator, _ = build(services, submit)
+    project = await new_project(services)
+
+    assert "GitHub не настроен" in await orchestrator.push_project(project.id)

@@ -152,6 +152,8 @@
 | `get_runs` | `project?`, `limit=20` | Запуски: режим, статус, день, время, задачи, ошибки |
 | `get_run_log` | `run_id`, `tail=200` | Хвост логов сессий запуска (события, ошибки) |
 | `get_pending_questions` | — | Открытые вопросы: id, проект, задача, текст, варианты |
+| `get_repo_status` | `project` | Текущая ветка, есть ли незакоммиченное, каждая ветка и тег: локально / на GitHub / состояние («в синхроне», «не запушено», «расходится») |
+| `get_git_log` | `project`, `ref=dev`, `limit=20` | Коммиты ветки: sha, автор, дата, сообщение |
 
 ### Изменения
 
@@ -166,6 +168,7 @@
 | `pause_project` / `resume_project` | `project` | |
 | `answer_question` | `question_id`, `answers: [str]` | |
 | `start_run` | `projects: [slug]`, `mode: continue\|next` | |
+| `push_project` | `project` | — (дослать `main`, `dev` и теги на GitHub; выполняет система своим токеном) |
 | `release` | `project` | ✓ |
 | `archive_project` | `project` | ✓ |
 | `delete_project` | `project`, `delete_remote=false` | ✓ |

@@ -134,6 +134,33 @@ class Git:
             )
         return result
 
+    async def show_refs(self) -> dict[str, str]:
+        """Локальные ветки и теги: {"refs/heads/dev": sha, "refs/tags/v0.1.0": sha}."""
+        try:
+            out = await self.run("show-ref", "--heads", "--tags")
+        except GitError as exc:
+            if exc.returncode == 1:  # ни одной ссылки
+                return {}
+            raise
+        return {ref: sha for sha, ref in (line.split(" ", 1) for line in out.splitlines())}
+
+    async def ls_remote(self, remote: str, *, env: dict[str, str]) -> dict[str, str]:
+        """Ветки и теги удалённого репозитория (без «очищенных» ^{} — как show-ref)."""
+        out = await self.run("ls-remote", "--heads", "--tags", remote, env=env)
+        refs = {}
+        for line in out.splitlines():
+            sha, ref = line.split("\t", 1)
+            if not ref.endswith("^{}"):
+                refs[ref] = sha
+        return refs
+
+    async def log(self, ref: str, *, limit: int) -> list[dict[str, str]]:
+        out = await self.run(
+            "log", f"-n{limit}", "--date=short", "--format=%h%x1f%an%x1f%ad%x1f%s", ref
+        )
+        keys = ("sha", "author", "date", "subject")
+        return [dict(zip(keys, line.split("\x1f"), strict=True)) for line in out.splitlines()]
+
     async def has_remote(self, name: str = "origin") -> bool:
         return name in (await self.run("remote")).splitlines()
 

@@ -73,6 +73,14 @@ class Orchestrator:
     async def release(self, project_id: int) -> str:
         return await self._runner.manual_release(project_id)
 
+    async def push_project(self, project_id: int) -> str:
+        """Досылает main, dev и теги на хостинг (под блокировкой — не посреди мержа)."""
+        if self._s.repos.provider is None:
+            return "GitHub не настроен — проекты живут только на сервере"
+        async with self._runner.lock(project_id):
+            url = await self._s.repos.publish(project_id)
+        return f"main, dev и теги запушены: {url}"
+
     async def archive_project(self, project_id: int) -> str:
         project = await self._s.projects.set_status(project_id, ProjectStatus.ARCHIVED)
         return f"Проект {project.slug} архивирован"

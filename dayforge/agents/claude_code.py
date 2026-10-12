@@ -17,16 +17,10 @@ from dayforge.agents.process import CliProcess, ParseState, event, launch_prefix
 MCP_TOKEN_ENV = "DAYFORGE_MCP_TOKEN"
 # Уровни reasoning, которые принимает `claude --effort` (проверено на Claude Code 2.1).
 EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
-READ_ONLY_TOOLS = [
-    "Read",
-    "Grep",
-    "Glob",
-    "Bash(git log:*)",
-    "Bash(git show:*)",
-    "Bash(git diff:*)",
-    "Bash(git status:*)",
-    "mcp__dayforge__*",
-]
+# Git в каталогах проектов оболочке не разрешить: шаблоны совпадают только с началом команды
+# (`git -C <проект> …` не проходит), а `cd <проект> && git …` Claude Code блокирует из-за хуков.
+# Поэтому git системному агенту даёт MCP: get_repo_status, get_git_log, push_project.
+READ_ONLY_TOOLS = ["Read", "Grep", "Glob", "mcp__dayforge__*"]
 WRITE_TOOLS = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
 _LIMIT_RE = re.compile(r"usage limit|limit reached|rate limit", re.IGNORECASE)
 _RESET_EPOCH_RE = re.compile(r"\|(\d{10})\b")

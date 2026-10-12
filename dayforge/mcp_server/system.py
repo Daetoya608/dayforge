@@ -27,6 +27,7 @@ from dayforge.core.questions import QuestionError
 from dayforge.db.models import CalendarWeekday, Commit, Milestone, Project, Run, Task
 from dayforge.mcp_server.auth import current_session, tool_error
 from dayforge.services import Services
+from dayforge.vcs.git import Git, GitError
 
 MAX_CALENDAR_RANGE = 93
 LOG_TEXT_LIMIT = 20_000
@@ -241,6 +242,35 @@ def register(server: MCPServer, services: Services) -> None:
         return {"sessions": logs}
 
     @server.tool()
+    async def get_repo_status(project: str, ctx: Context) -> dict[str, Any]:
+        """Git проекта: текущая ветка, есть ли незакоммиченное, ветки и теги против GitHub.
+
+        Сверку с GitHub делает система своим токеном — у оболочки агента доступа к GitHub нет.
+        """
+        await check(ctx)
+        row = await project_by_slug(project)
+        try:
+            return await services.repos.status(row.id)
+        except Exception as exc:
+            raise tool_error("git_error", str(exc)[:500]) from None
+
+    @server.tool()
+    async def get_git_log(
+        project: str,
+        ctx: Context,
+        ref: str = "dev",
+        limit: Annotated[int, Field(ge=1, le=100)] = 20,
+    ) -> dict[str, Any]:
+        """История коммитов ветки проекта (по умолчанию dev): sha, автор, дата, сообщение."""
+        await check(ctx)
+        row = await project_by_slug(project)
+        try:
+            commits = await Git(Path(row.repo_path)).log(ref, limit=limit)
+        except GitError as exc:
+            raise tool_error("git_error", exc.stderr.strip()[:500]) from None
+        return {"ref": ref, "commits": commits}
+
+    @server.tool()
     async def get_pending_questions(ctx: Context) -> dict[str, Any]:
         """Вопросы агентов, на которые пользователь ещё не ответил."""
         await check(ctx)
@@ -441,6 +471,17 @@ def register(server: MCPServer, services: Services) -> None:
             "action_id": action_id,
             "message": "Пользователю отправлен запрос на подтверждение",
         }
+
+    @server.tool()
+    async def push_project(project: str, ctx: Context) -> dict[str, str]:
+        """Запушить main, dev и теги проекта на GitHub (делает система своим токеном)."""
+        await check(ctx)
+        row = await project_by_slug(project)
+        try:
+            message = await services.require_orchestrator().push_project(row.id)
+        except Exception as exc:
+            raise tool_error("push_failed", str(exc)[:500]) from None
+        return {"status": "done", "message": message}
 
     @server.tool()
     async def release(project: str, ctx: Context) -> dict[str, Any]:

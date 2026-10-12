@@ -49,6 +49,8 @@ class Orchestrator(Protocol):
 
     async def after_answer(self, outcome: Any) -> None: ...
 
+    async def push_project(self, project_id: int) -> str: ...
+
 
 @dataclass
 class Services:

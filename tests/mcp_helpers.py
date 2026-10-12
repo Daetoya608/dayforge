@@ -53,6 +53,10 @@ class FakeOrchestrator:
     async def after_answer(self, outcome: Any) -> None:
         self.calls.append(("after_answer", outcome))
 
+    async def push_project(self, project_id: int) -> str:
+        self.calls.append(("push_project", project_id))
+        return "pushed"
+
 
 def free_port() -> int:
     with socket.socket() as sock:

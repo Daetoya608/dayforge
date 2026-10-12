@@ -76,7 +76,7 @@ claude -p "<prompt>" \
 
 - **MCP-конфиг** — временный файл с сервером типа `http`, URL роли и заголовком `Authorization: Bearer ${DAYFORGE_MCP_TOKEN}`: сам токен приходит только в переменной окружения процесса (подстановка в `--mcp-config` проверена на Claude Code 2.1). Файл удаляется после сессии.
 - **`cli_session_id`** берётся из первого события `system/init`.
-- **Только чтение** (системный агент): вместо `bypassPermissions` — `--allowedTools` со списком `Read`, `Grep`, `Glob`, `Bash(git log:*)`, `Bash(git show:*)`, `Bash(git diff:*)`, `mcp__dayforge__*` и `--disallowedTools Edit Write`.
+- **Только чтение** (системный агент): вместо `bypassPermissions` — `--allowedTools Read Grep Glob mcp__dayforge__*` и `--disallowedTools Edit Write …`. Git оболочке не разрешается: шаблоны прав совпадают только с началом команды (`git -C <проект> log` не проходит), а `cd <проект> && git …` Claude Code блокирует сам (риск хуков в чужом каталоге). Git — через MCP-инструменты `get_repo_status`, `get_git_log`, `push_project`; их выполняет система.
 - **Уровень reasoning** — флаг `--effort` (`low`, `medium`, `high`, `xhigh`, `max`; проверено на Claude Code 2.1).
 - **Лимит подписки** — по событию `rate_limit_event` (`rate_limit_info.status` не `allowed`, время сброса — `resetsAt`) и, на всякий случай, по тексту ошибки в событии `result`.
 - Авторизация: один раз `claude` → `/login` под `dayforge-agent` на сервере (подписка).
